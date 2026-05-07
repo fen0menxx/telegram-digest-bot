@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-05-07 — Аудит и чистка проекта
+
+### Удалено
+
+- `data/bot.db` — пустой файл (0 байт), legacy от старой версии БД
+- `git_push.py` — одноразовый скрипт для Initial commit (захардкоженный путь и сообщение); своё дело сделал, remote `origin → fen0menxx/telegram-digest-bot` настроен
+- `data/digest_inputs/*.txt` старше 30 дней — 89 тестовых debug-файлов январских серий
+- `data/digest_backups/*.txt` старше 30 дней — 80 файлов (тексты дайджестов остались в Telegram-канале)
+- Содержимое `data/bot.log` (1 МБ старого лога интерактивного режима, loguru пересоздаст при следующем запуске)
+
+### Размер
+
+`data/` сократился с 9.3 МБ → 3.2 МБ.
+
+### Добавлено
+
+- `.gitattributes` — нормализация line endings (LF в репо, CRLF при checkout на Windows). Устранил «фантомные» git diff на 29 файлах из-за CRLF-конфликтов.
+
+### Закоммичены давно лежавшие изменения (4 коммита)
+
+1. `chore: добавить .gitattributes для нормализации EOL`
+2. `feat: улучшения интерактивного бота` — переработанные промпты (`src/ai/prompts.py`), QR-логин в `src/userbot/client.py`, расширенные настройки в `src/bot/handlers/settings.py`, добавлены `clear_session.py` и `start_bot.bat` (были в проекте, но не в git)
+3. `feat: cron-режим через Windows Task Scheduler` — `make_digest.py`, `run_digest.bat`, `register_tasks.ps1`, параметр `force=False` в `src/scheduler/tasks.py`
+4. `docs: CLAUDE.md, CONTINUITY.md + раздел автоматизации в README` + удаление `git_push.py`
+
+### Не делалось (на случай вопроса)
+
+- `__pycache__/` директории не удалялись — Python пересоздаёт их при каждом запуске, убирать вручную нет смысла
+- `migrate_db.py` оставлен — на случай восстановления старого `bot.db` из бэкапа
+- Утилиты (`clear_cache.py`, `clear_session.py`, `migrate_db.py`) остались в корне (не вынесены в `scripts/`) — пользовательское решение
+
+---
+
 ## 2026-05-07 — Cron-режим через Windows Task Scheduler
 
 ### Что добавлено
