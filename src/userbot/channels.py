@@ -42,8 +42,12 @@ async def scan_user_channels() -> list[ChannelInfo]:
         
         # Только каналы и группы (не личные чаты)
         if isinstance(entity, Channel):
+            # Для Channel и супергрупп используем utils.get_peer_id для правильного ID
+            from telethon.utils import get_peer_id
+            channel_id = get_peer_id(entity)
+            
             channels.append(ChannelInfo(
-                id=entity.id,
+                id=channel_id,
                 title=entity.title,
                 username=entity.username,
                 is_channel=entity.broadcast,  # broadcast = канал, иначе супергруппа
@@ -60,4 +64,14 @@ async def scan_user_channels() -> list[ChannelInfo]:
     logger.info(f"Найдено {len(channels)} каналов и групп")
     
     return channels
+
+
+
+
+
+
+
+
+
+
 

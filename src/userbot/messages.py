@@ -85,7 +85,9 @@ async def get_messages_from_channels(
                 if username:
                     link = f"https://t.me/{username}/{msg.id}"
                 else:
-                    link = f"https://t.me/c/{channel_id}/{msg.id}"
+                    # Для приватных каналов убираем префикс -100
+                    link_id = str(channel_id).replace("-100", "", 1)
+                    link = f"https://t.me/c/{link_id}/{msg.id}"
                 
                 messages.append(MessageInfo(
                     channel_id=channel_id,
@@ -132,4 +134,19 @@ async def get_channel_messages(
         until=until,
         limit_per_channel=limit,
     )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

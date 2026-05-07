@@ -120,6 +120,9 @@ def get_settings_menu_keyboard() -> ReplyKeyboardMarkup:
         KeyboardButton(text="📢 Канал для дайджестов"),
     )
     builder.row(
+        KeyboardButton(text="🗑 Очистить историю дайджестов"),
+    )
+    builder.row(
         KeyboardButton(text="🔙 Назад"),
     )
     

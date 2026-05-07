@@ -32,7 +32,15 @@ class Settings:
     
     # Владелец бота (только он может использовать)
     OWNER_ID: int = int(os.getenv("OWNER_TELEGRAM_ID", "0"))
-    
+
+    # Прокси для Telethon (актуально при VPN со split tunneling).
+    # Поддерживается socks5 / socks4 / http. Пусто — без прокси.
+    PROXY_TYPE: str = os.getenv("TG_PROXY_TYPE", "").strip().lower()
+    PROXY_HOST: str = os.getenv("TG_PROXY_HOST", "127.0.0.1")
+    PROXY_PORT: int = int(os.getenv("TG_PROXY_PORT", "0") or 0)
+    PROXY_USER: str = os.getenv("TG_PROXY_USER", "")
+    PROXY_PASS: str = os.getenv("TG_PROXY_PASS", "")
+
     # Пути
     DATA_DIR: Path = ROOT_DIR / "data"
     DB_PATH: Path = DATA_DIR / "digest.db"

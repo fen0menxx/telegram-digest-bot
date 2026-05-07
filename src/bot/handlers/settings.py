@@ -12,7 +12,8 @@ from pathlib import Path
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
-from sqlalchemy import select
+from datetime import datetime, timedelta, timezone
+from sqlalchemy import select, delete
 from loguru import logger
 
 # Добавляем корень проекта в путь
@@ -27,7 +28,7 @@ from src.bot.keyboards import (
 )
 from src.bot.states import MenuStates, InputStates
 from src.storage.database import get_session
-from src.storage.models import User
+from src.storage.models import User, DigestHistory, ProcessedMessage
 
 router = Router(name="settings")
 
@@ -42,9 +43,10 @@ async def msg_settings(message: Message, state: FSMContext) -> None:
     await show_settings(message, state)
 
 
-async def show_settings(message: Message, state: FSMContext) -> None:
+async def show_settings(message: Message, state: FSMContext, user_id: int = None) -> None:
     """Показать настройки."""
-    user_id = message.from_user.id
+    if user_id is None:
+        user_id = message.from_user.id
     
     async with get_session() as session:
         result = await session.execute(
@@ -53,7 +55,7 @@ async def show_settings(message: Message, state: FSMContext) -> None:
         user = result.scalar_one_or_none()
     
     if not user:
-        await message.answer("Пользователь не найден")
+        await message.answer("Пользователь не найден. Напишите /start")
         return
     
     # Форматируем интервал
@@ -132,7 +134,7 @@ async def cb_set_interval(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer(f"✅ Интервал установлен: {hours} ч.", show_alert=True)
     
     # Показываем обновлённые настройки
-    await show_settings(callback.message, state)
+    await show_settings(callback.message, state, user_id=user_id)
 
 
 # =============================================================================
@@ -173,7 +175,7 @@ async def cb_set_news_limit(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer(f"✅ Лимит установлен: до {limit} новостей", show_alert=True)
     
     # Показываем обновлённые настройки
-    await show_settings(callback.message, state)
+    await show_settings(callback.message, state, user_id=user_id)
 
 
 # =============================================================================
@@ -271,6 +273,59 @@ async def process_channel_link(message: Message, state: FSMContext) -> None:
         "⚠️ Убедитесь, что бот добавлен в канал как администратор!",
         reply_markup=get_settings_menu_keyboard(),
     )
+
+
+# =============================================================================
+# ОЧИСТКА ИСТОРИИ ДАЙДЖЕСТОВ
+# =============================================================================
+
+@router.message(F.text == "🗑 Очистить историю дайджестов", MenuStates.settings_menu)
+async def msg_clear_digest_history(message: Message, state: FSMContext) -> None:
+    """Очистка сегодняшней истории дайджестов."""
+    user_id = message.from_user.id
+    
+    # Определяем начало вчерашнего дня по Москве (UTC+3)
+    moscow_tz = timezone(timedelta(hours=3))
+    moscow_now = datetime.now(moscow_tz)
+    yesterday_start_moscow = (moscow_now - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    clear_from = yesterday_start_moscow.astimezone(timezone.utc).replace(tzinfo=None)
+    
+    async with get_session() as session:
+        # Удаляем историю дайджестов за вчера и сегодня
+        result = await session.execute(
+            delete(DigestHistory).where(
+                DigestHistory.user_id == user_id,
+                DigestHistory.created_at >= clear_from
+            )
+        )
+        deleted_digests = result.rowcount
+        
+        # Удаляем кэш обработанных сообщений за вчера и сегодня
+        result2 = await session.execute(
+            delete(ProcessedMessage).where(
+                ProcessedMessage.processed_at >= clear_from
+            )
+        )
+        deleted_cache = result2.rowcount
+        
+        await session.commit()
+    
+    if deleted_digests > 0 or deleted_cache > 0:
+        await message.answer(
+            f"✅ <b>История очищена!</b>\n\n"
+            f"Удалено записей дайджестов: {deleted_digests}\n"
+            f"Очищено из кэша сообщений: {deleted_cache}\n"
+            f"Период: вчера и сегодня\n\n"
+            f"Теперь можете запросить дайджест заново.",
+            reply_markup=get_settings_menu_keyboard(),
+        )
+    else:
+        await message.answer(
+            "ℹ️ Сегодня дайджестов ещё не было.",
+            reply_markup=get_settings_menu_keyboard(),
+        )
+    
+    logger.info(f"User {user_id} cleared today's digest history: {deleted_count} records")
 
 
 # =============================================================================

@@ -34,3 +34,31 @@ class InputStates(StatesGroup):
 # - search_query: str — поисковый запрос каналов
 # - digest_cluster_id: int | "all" — кластер для дайджеста
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

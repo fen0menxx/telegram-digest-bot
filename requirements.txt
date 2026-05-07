@@ -25,3 +25,34 @@ loguru>=0.7.0
 # Crypto (для Telethon)
 cryptg>=0.4.0
 
+# SOCKS/HTTP прокси для Telethon (нужен при VPN со split tunneling)
+python-socks[asyncio]>=2.4.0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

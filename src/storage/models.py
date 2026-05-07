@@ -108,3 +108,31 @@ class ProcessedMessage(Base):
     message_id: Mapped[int] = mapped_column(Integer, index=True)
     processed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
