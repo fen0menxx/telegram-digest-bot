@@ -47,54 +47,64 @@ def set_bot(bot) -> None:
     _bot = bot
 
 
-async def check_and_send_digests() -> None:
+async def check_and_send_digests(force: bool = False) -> None:
     """
     Проверить и отправить дайджесты пользователям.
-    
+
     Запускается по расписанию. Проверяет, пора ли отправлять дайджест
     каждому пользователю на основе его настроек.
+
+    Args:
+        force: Если True — игнорировать user.digest_interval (для cron-режима,
+               когда расписание управляется снаружи через Task Scheduler).
     """
-    logger.info("Проверка дайджестов по расписанию...")
-    
+    logger.info(f"Проверка дайджестов по расписанию... (force={force})")
+
     if _bot is None:
         logger.error("Бот не инициализирован для планировщика")
         return
-    
+
     async with get_session() as session:
         # Получаем активных пользователей
         result = await session.execute(
             select(User).where(User.is_active == True)
         )
         users = result.scalars().all()
-    
+
     now = datetime.utcnow()
-    
+
     for user in users:
         try:
-            await _process_user_digest(user, now)
+            await _process_user_digest(user, now, force=force)
         except Exception as e:
             logger.error(f"Ошибка дайджеста для {user.telegram_id}: {e}")
 
 
-async def _process_user_digest(user: User, now: datetime) -> None:
+async def _process_user_digest(user: User, now: datetime, force: bool = False) -> None:
     """
     Обработать дайджесты для одного пользователя.
-    
+
     Логика:
     - Генерируем ОТДЕЛЬНЫЙ дайджест для КАЖДОГО кластера
     - Период: вчера 00:00 — сейчас (максимум 2 дня)
     - Без ограничений по количеству сообщений
     - Отправка в указанный канал (если настроен)
     - Кэширование только после успешной отправки
+
+    Args:
+        force: Если True — игнорировать user.digest_interval (cron-режим).
     """
     # Вычисляем, когда должен быть следующий дайджест
-    if user.last_digest_at is None:
+    if force:
+        # cron-режим: расписание управляется снаружи, всегда пытаемся
+        should_send = True
+    elif user.last_digest_at is None:
         # Первый дайджест — отправляем сразу
         should_send = True
     else:
         next_digest = user.last_digest_at + timedelta(hours=user.digest_interval)
         should_send = now >= next_digest
-    
+
     if not should_send:
         return
     
@@ -294,4 +304,32 @@ def stop_scheduler() -> None:
     if scheduler.running:
         scheduler.shutdown()
         logger.info("Планировщик остановлен")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
